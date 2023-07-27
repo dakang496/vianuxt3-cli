@@ -1,0 +1,24 @@
+{
+  "name": "vianuxt3-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "dakang496",
+  "license": "MIT",
+  "bin": {
+    "vianuxt3": "./index.js"
+  },
+  "dependencies": {
+    "@babel/core": "^7.22.9",
+    "@vue/compiler-dom": "^3.3.4",
+    "@vue/compiler-sfc": "^3.3.4",
+    "commander": "^11.0.0",
+    "fs-extra": "^11.1.1",
+    "glob": "^10.3.3",
+    "lodash": "^4.17.21",
+    "ora": "^3.0.0"
+  }
+}
