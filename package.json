@@ -11,6 +11,10 @@
   "bin": {
     "vianuxt3": "./index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dakang496/vianuxt3-cli.git"
+  },
   "dependencies": {
     "@babel/core": "^7.22.9",
     "@vue/compiler-dom": "^3.3.4",
