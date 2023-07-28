@@ -2,7 +2,7 @@
 var _ = require('lodash');
 
 module.exports = class Handler {
-  constructor({ types, template }, options) {
+  constructor({ types, template }, options, extraData) {
     this.types = types;
     this.template = template;
 
@@ -14,6 +14,8 @@ module.exports = class Handler {
     this.computedStateNodes = [];
 
     this.deleteNodePaths = [];
+
+    this.filePath = extraData ? extraData.filePath : "";
   }
 
   addImportStore(name, path) {
@@ -195,10 +197,9 @@ module.exports = class Handler {
             return obj;
           }, {})
         }
-
         Object.keys(secondArgObj).forEach((key) => {
           const property = secondArgObj[key];
-          const dotName = `${firstArgPathNode.value}.${property}`;
+          const dotName = `${firstArgPathNode.value.replaceAll("/", ".")}.${property}`;
           const variables = dotName.split(".");
           const storeNameInfo = this.getStoreInfoByVariables(variables);
 
@@ -212,7 +213,6 @@ module.exports = class Handler {
           const mapStateItemNode = types.spreadElement(ast);
 
           this.addComputedState(mapStateItemNode);
-
           this.addImportStore(storeNameInfo.name, storeNameInfo.path);
         });
 
@@ -230,7 +230,7 @@ module.exports = class Handler {
     if (!/dispatch|commit/.test(_.get(node, "callee.property.name"))) {
       return false;
     }
-    
+
     if (_.get(node, "callee.object.property.name") !== "$store") {
       return false;
     }
@@ -240,7 +240,7 @@ module.exports = class Handler {
     const firstArgNode = node.arguments[0] || "";
     const execResult = /^(.+)\/(.+?)$/.exec(firstArgNode.value);
     if (!execResult) {
-      console.warn("注意这个$store的调用处理不了", firstArgNode.value);
+      console.warn(`${this.filePath}\n 注意这个$store的调用处理不了 ${firstArgNode.value}`)
       return;
     }
     const storePath = execResult[1];
@@ -252,7 +252,6 @@ module.exports = class Handler {
     const expressionNode = types.callExpression(calleeNode, node.arguments.slice(1));
 
     path.replaceWith(expressionNode);
-
     this.addImportStore(storeName, storePath);
     this.addComputedStore(storeName);
 

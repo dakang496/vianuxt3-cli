@@ -24,7 +24,6 @@ module.exports = {
           relativePath,
         });
 
-
         outputPath && fsExtra.outputFileSync(outputPath, newContent);
 
 

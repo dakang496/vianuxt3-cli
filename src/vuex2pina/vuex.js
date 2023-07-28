@@ -38,11 +38,10 @@ module.exports = async function (options) {
 
     return newContent;
   }, {
-    fileRules: [path.resolve(options.root, "store/**/*.js")],
-    // fileRules: ["nuxt/store/**/account.js"],
+    fileRules: [path.resolve(options.source, "store/**/*.js")],
     output: {
-      source: path.resolve(options.root, "store"),
-      dest: path.resolve(options.root, "stores"),
+      source: path.resolve(options.source, "store"),
+      dest: path.resolve(options.dest, "stores"),
     }
   });
 

@@ -1,10 +1,12 @@
 const handleVuex = require('./vuex.js');
 const handelVue = require('./vue.js');
 module.exports = async function (options) {
-  console.log("vuex2pina start");
+  const defaultOptions = {
+    source: process.cwd(),
+    dest: process.cwd(),
+  }
+  const _options = { ...defaultOptions, ...options };
 
-  const storeNameMap = await handleVuex(options);
-  await handelVue({ ...options, storeNameMap });
-
-  console.log("vuex2pina done");
+  const storeNameMap = await handleVuex(_options);
+  await handelVue({ ..._options, storeNameMap });
 }

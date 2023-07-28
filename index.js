@@ -25,13 +25,11 @@ async function showSpinner(text, callback) {
 
 program
   .command('vuex2pinia')
-  .option('-r, --root [path]', 'root directory of project',"./")
+  .option('-s, --source [path]', 'source directory of project',"./")
+  .option('-d, --dest [path]', 'dest directory of project',"./")
   .description('convert vuex to pinia')
-  .option('-f, --force', 'split forcedly even if it has translated')
-  // .addOption(new program.Option('-p, --paths <paths...>', 'paths of entry'))
   .action(function (options) {
     showSpinner('vuex2pinia', async function () {
-      console.log("options",options);
       handleVuex2pina(options);
     });
   });
