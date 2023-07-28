@@ -38,12 +38,28 @@ module.exports = class Handler {
     declarationPath.remove();
   }
 
+  createNuxtAppNode() {
+    return this.types.callExpression(this.types.Identifier("useNuxtApp"), []);
+  }
+
   handleActions(path, declarationPath) {
     const properties = path.get("init").node.properties;
     const nodes = properties.map((property, index) => {
       const propertyPath = path.get(`init.properties.${index}`);
       property.params = property.params.slice(1);
+
+      propertyPath.traverse({
+        ThisExpression: (path) => {
+          path.replaceWith(this.createNuxtAppNode());
+        }
+      })
+
       propertyPath.scope.rename("commit", "this.commit");
+
+
+
+
+
       return property;
     });
     this.actionNodes = this.actionNodes.concat(nodes);
