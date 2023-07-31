@@ -1,6 +1,7 @@
 const fsExtra = require('fs-extra');
 const glob = require('glob');
 const path = require('path');
+const formatCode = require('./formatCode.js');
 
 module.exports = {
   handleFiles: async function (handler, config = {}) {
@@ -31,6 +32,6 @@ module.exports = {
         console.error(error);
       }
     }
-
-  }
+  },
+  formatCode,
 }

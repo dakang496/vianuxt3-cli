@@ -57,9 +57,6 @@ module.exports = class Handler {
       propertyPath.scope.rename("commit", "this.commit");
 
 
-
-
-
       return property;
     });
     this.actionNodes = this.actionNodes.concat(nodes);

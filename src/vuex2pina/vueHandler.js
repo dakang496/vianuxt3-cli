@@ -16,6 +16,12 @@ module.exports = class Handler {
     this.deleteNodePaths = [];
 
     this.filePath = extraData ? extraData.filePath : "";
+
+    this.modified = false;
+  }
+
+  signModified() {
+    this.modified = true;
   }
 
   addImportStore(name, path) {
@@ -254,6 +260,7 @@ module.exports = class Handler {
     path.replaceWith(expressionNode);
     this.addImportStore(storeName, storePath);
     this.addComputedStore(storeName);
+    this.signModified();
 
     return true;
   }
@@ -271,7 +278,8 @@ module.exports = class Handler {
           storeNames.forEach((name) => {
             const ast = template.statement.ast(`import { use${_.upperFirst(name)}Store } from "~/stores/${importStoreMap[name]}"`);
             file.path.unshiftContainer("body", ast);
-          })
+          });
+          this.signModified();
         }
 
 
@@ -301,38 +309,46 @@ module.exports = class Handler {
             const node = types.ObjectProperty(types.identifier("computed"), template.expression.ast(`{}`));
 
             declarationPath.pushContainer("properties", node);
+            this.signModified();
           }
           const computedValuePath = declarationPath.get(`properties.${computedIndex}.value`);
 
           /** 处理store */
           if (hasComputedStore) {
-            file.path.unshiftContainer("body", template.statement.ast(`import { mapStores } from "pinia"`));
-
+            if (!options.autoImport) {
+              file.path.unshiftContainer("body", template.statement.ast(`import { mapStores } from "pinia"`));
+            }
             const templateStr = this.useTemplate(4, { storeNames: computedStoreNames });
             const ast2 = template.expression.ast(templateStr);
             const spreadNode = types.spreadElement(ast2);
-            computedValuePath.pushContainer("properties", spreadNode);
+            computedValuePath.unshiftContainer("properties", spreadNode);
+            this.signModified();
           }
 
           /** 处理state */
           if (hasComputedState) {
-            const ast1 = template.statement.ast(`import { mapState } from "pinia"`);
+            if (!options.autoImport) {
+              file.path.unshiftContainer("body", template.statement.ast(`import { mapState } from "pinia"`));
+            }
 
-            file.path.unshiftContainer("body", ast1);
             this.computedStateNodes.forEach((node, index) => {
-              computedValuePath.pushContainer("properties", node);
+              computedValuePath.unshiftContainer("properties", node);
             });
+            this.signModified();
           }
 
         }
 
-        this.deleteNodePaths.forEach((nodePath) => {
-          try {
-            nodePath.remove();
-          } catch (error) {
-            // console.error(error);
-          }
-        })
+        if (this.deleteNodePaths.length > 0) {
+          this.deleteNodePaths.forEach((nodePath) => {
+            try {
+              nodePath.remove();
+            } catch (error) {
+              // console.error(error);
+            }
+          });
+          this.signModified();
+        }
 
       },
       visitor: {
@@ -378,6 +394,8 @@ module.exports = class Handler {
           const templateStr = `this.$pinia.state.value.${storeNameInfo.dotNameFull}`
 
           destPath.replaceWithSourceString(templateStr);
+          this.signModified();
+
           this.addImportStore(storeNameInfo.name, storeNameInfo.path);
           this.addComputedStore(storeNameInfo.name);
         }

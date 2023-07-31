@@ -14,7 +14,8 @@ module.exports = async function (options) {
     // console.log("file", filePath);
     const extension = path.extname(filePath);
     let script = null;
-    if (extension === ".vue") {
+    let isVue = extension === ".vue";
+    if (isVue) {
       const parsed = parse(content);
       script = parsed.descriptor.script?.content;
 
@@ -25,32 +26,46 @@ module.exports = async function (options) {
       return content;
     }
 
+    let handler = null;
+
     const options = {
       plugins: [
         [
           function (context, config) {
-            const handler = new VueHandler(context, config,{
+            handler = new VueHandler(context, config, {
               filePath
             })
 
             return handler.create();
           },
-          { storeNameMap, autoImport: true }]
-      ]
+          { storeNameMap, autoImport: true }
+        ],
+      ],
+      compact: false,
     }
 
-    const result = await transformAsync(script, options);
-    const newContent = content.replace(script, "\n" + result.code + "\n");
+    try {
+      const result = await transformAsync(script, options);
+      if (handler && !handler.modified) {
+        // console.log("not modified", filePath);
+        return content;
+      }
 
+      const finalScript = await helper.formatCode(result.code, {}, filePath);
+      const newContent = content.replace(script, (isVue ? "\n" : "") + finalScript + "\n");
 
-    return newContent;
+      return newContent;
+    } catch (error) {
+      console.warn("!!!!", filePath, "!!!!")
+      console.error(error);
+      throw error;
+    }
+
   }, {
     fileRules: [
       path.resolve(options.source, "components/**/*.{vue,js}"),
       path.resolve(options.source, "pages/**/*.{vue,js}"),
       path.resolve(options.source, "layout/**/*.{vue,js}"),
-      path.resolve(options.source, "plugins/**/*.{vue,js}"),
-      path.resolve(options.source, "modules/**/*.{vue,js}"),
     ],
     // fileOptions: {
     //   ignore: [

@@ -2,7 +2,8 @@ const helper = require('../helper.js');
 const path = require("path");
 var _ = require('lodash');
 const transformAsync = require("@babel/core").transformAsync;
-const vuexHandler = require('./vuexHandler.js');
+
+const VuexHandler = require('./vuexHandler.js');
 
 
 module.exports = async function (options) {
@@ -21,22 +22,31 @@ module.exports = async function (options) {
       plugins: [
         [
           function (context, config) {
-            const handler = new vuexHandler(context, config)
+            const handler = new VuexHandler(context, config)
 
             return handler.create();
           },
           {
             storeId: storeId,
           }
-        ]
-      ]
+        ],
+      ],
+      compact: false,
     }
 
-    const result = await transformAsync(content, options);
-    const newContent = content.replace(content, "\n" + result.code + "\n");
+    try {
+      const result = await transformAsync(content, options);
 
+      const finalScript = await helper.formatCode(result.code, {}, filePath);
 
-    return newContent;
+      const newContent = content.replace(content, finalScript + "\n");
+
+      return newContent;
+    } catch (error) {
+      console.warn(filePath)
+      console.error(error);
+      throw error;
+    }
   }, {
     fileRules: [path.resolve(options.source, "store/**/*.js")],
     output: {
