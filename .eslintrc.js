@@ -1,14 +1,10 @@
-const { ESLint } = require("eslint");
-const _ = require("lodash");
-
-const defaultConfig = {
+module.exports = {
   env: {
     browser: true,
     es2021: true,
   },
   extends: [
     "standard",
-    "plugin:vue/vue3-essential",
   ],
   overrides: [
     {
@@ -64,28 +60,4 @@ const defaultConfig = {
     "n/no-callback-literal": "off",
     "vue/require-prop-types": "off",
   },
-};
-
-module.exports = async function(code, overrideConfig, filePath) {
-  const config = _.merge({}, defaultConfig, overrideConfig);
-
-  const eslint = new ESLint({
-    fix: true,
-    overrideConfig: config,
-  });
-  const results = await eslint.lintText(code);
-
-  const formatter = await eslint.loadFormatter("stylish");
-  const errorTip = formatter.format(results);
-
-  if (errorTip) {
-    console.log(filePath);
-    console.log(errorTip);
-  }
-
-  if (results && results[0] && results[0].output) {
-    return results[0].output;
-  }
-
-  return code;
 };

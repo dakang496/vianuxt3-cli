@@ -1,16 +1,14 @@
-const helper = require('../helper.js');
+const helper = require("../helper.js");
 const path = require("path");
-var _ = require('lodash');
+const _ = require("lodash");
 const transformAsync = require("@babel/core").transformAsync;
 
-const VuexHandler = require('./vuexHandler.js');
+const VuexHandler = require("./vuexHandler.js");
 
+module.exports = async function(options) {
+  const storeNameMap = {};
 
-module.exports = async function (options) {
-
-  const storeNameMap = {}
-
-  await helper.handleFiles(async (content, { filePath, extension, relativePath }) => {
+  await helper.handleFiles(async(content, { filePath, extension, relativePath }) => {
     if (extension !== ".js") {
       return content;
     }
@@ -21,18 +19,18 @@ module.exports = async function (options) {
     const options = {
       plugins: [
         [
-          function (context, config) {
-            const handler = new VuexHandler(context, config)
+          function(context, config) {
+            const handler = new VuexHandler(context, config);
 
             return handler.create();
           },
           {
-            storeId: storeId,
-          }
+            storeId,
+          },
         ],
       ],
       compact: false,
-    }
+    };
 
     try {
       const result = await transformAsync(content, options);
@@ -43,7 +41,7 @@ module.exports = async function (options) {
 
       return newContent;
     } catch (error) {
-      console.warn(filePath)
+      console.warn(filePath);
       console.error(error);
       throw error;
     }
@@ -52,11 +50,8 @@ module.exports = async function (options) {
     output: {
       source: path.resolve(options.source, "store"),
       dest: path.resolve(options.dest, "stores"),
-    }
+    },
   });
 
   return storeNameMap;
-
-}
-
-
+};

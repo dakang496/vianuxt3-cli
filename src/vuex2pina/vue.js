@@ -1,24 +1,23 @@
-
-const helper = require('../helper.js');
+const helper = require("../helper.js");
 const path = require("path");
-const parse = require('@vue/compiler-sfc').parse;
+const parse = require("@vue/compiler-sfc").parse;
 const transformAsync = require("@babel/core").transformAsync;
 
-const VueHandler = require('./vueHandler.js');
+const VueHandler = require("./vueHandler.js");
 
-
-module.exports = async function (options) {
+module.exports = async function(options) {
   const storeNameMap = options.storeNameMap;
 
-  helper.handleFiles(async (content, { filePath }) => {
+  helper.handleFiles(async(content, { filePath }) => {
     // console.log("file", filePath);
     const extension = path.extname(filePath);
     let script = null;
-    let isVue = extension === ".vue";
+    const isVue = extension === ".vue";
+
     if (isVue) {
       const parsed = parse(content);
-      script = parsed.descriptor.script?.content;
 
+      script = parsed.descriptor.script?.content;
     } else if (extension === ".js") {
       script = content;
     }
@@ -31,21 +30,22 @@ module.exports = async function (options) {
     const options = {
       plugins: [
         [
-          function (context, config) {
+          function(context, config) {
             handler = new VueHandler(context, config, {
-              filePath
-            })
+              filePath,
+            });
 
             return handler.create();
           },
-          { storeNameMap, autoImport: true }
+          { storeNameMap, autoImport: true },
         ],
       ],
       compact: false,
-    }
+    };
 
     try {
       const result = await transformAsync(script, options);
+
       if (handler && !handler.modified) {
         // console.log("not modified", filePath);
         return content;
@@ -56,11 +56,10 @@ module.exports = async function (options) {
 
       return newContent;
     } catch (error) {
-      console.warn("!!!!", filePath, "!!!!")
+      console.warn("!!!!", filePath, "!!!!");
       console.error(error);
       throw error;
     }
-
   }, {
     fileRules: [
       path.resolve(options.source, "components/**/*.{vue,js}"),
@@ -76,8 +75,6 @@ module.exports = async function (options) {
     output: {
       source: path.resolve(options.source),
       dest: path.resolve(options.dest),
-    }
-  })
-}
-
-
+    },
+  });
+};

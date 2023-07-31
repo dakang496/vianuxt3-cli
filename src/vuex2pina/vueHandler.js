@@ -1,5 +1,5 @@
 // import { camelCase, upperFirst } from "lodash-es"
-var _ = require('lodash');
+const _ = require("lodash");
 
 module.exports = class Handler {
   constructor({ types, template }, options, extraData) {
@@ -10,7 +10,7 @@ module.exports = class Handler {
     this.storeNameMap = this.options.storeNameMap || {};
 
     this.importStoreMap = {};
-    this.computedStoreMap = {}
+    this.computedStoreMap = {};
     this.computedStateNodes = [];
 
     this.deleteNodePaths = [];
@@ -44,16 +44,19 @@ module.exports = class Handler {
 
   getStoreInfoByVariables(variables) {
     const variablesLen = variables.length;
+
     if (variablesLen === 0) {
       return null;
     }
-    let storeName = '';
+    let storeName = "";
     let parts = [];
-    let path = '';
+    let path = "";
+
     for (let i = variablesLen; i > 0; i--) {
       parts = variables.slice(0, i);
       path = parts.join("/");
       const name = _.camelCase(path);
+
       if (this.storeNameMap[name]) {
         storeName = name;
         break;
@@ -65,38 +68,42 @@ module.exports = class Handler {
       path = storeName;
     }
     const dotName = parts.join(".");
+
     return {
       isOnlyStore: parts.length === variablesLen,
       parts,
       name: storeName,
       path: parts.join("/"),
       dotName,
-      dotNameFull: variables.join(".").replace(`${dotName}`, storeName)
-    }
+      dotNameFull: variables.join(".").replace(`${dotName}`, storeName),
+    };
   }
 
   getStoreInfoByNode(containerPath, rootVariable) {
     const variables = [];
+
     containerPath.traverse({
       MemberExpression: (path) => {
         const currentNode = path.node;
+
         if (currentNode.object.name === rootVariable) {
           let currentPath = path;
+
           while (this.types.isMemberExpression(currentPath.node)) {
             variables.push(currentPath.get("property").node.name);
             currentPath = currentPath.parentPath;
           }
           path.stop();
         }
-      }
-    })
+      },
+    });
     return this.getStoreInfoByVariables(variables);
   }
 
   useTemplate(type, info) {
     switch (type) {
-      case 0:
-        return `
+    case 0:
+      return `
           mapState(use${_.upperFirst(info.storeName)}Store, {
             ${info.key}(store){
               const method = ${info.methodSource};
@@ -104,43 +111,45 @@ module.exports = class Handler {
             }
           })
         `;
-      case 1:
-        return `
+    case 1:
+      return `
           mapState(use${_.upperFirst(info.storeName)}Store, {
             ${info.methodSource}
           })
         `;
-      case 2:
-        return `
+    case 2:
+      return `
           mapState(use${_.upperFirst(info.storeName)}Store, {
             ${info.key}(store){
               return store${info.property}
             }
           })
        `;
-      case 3:
-        return `
+    case 3:
+      return `
           this.${info.storeName}Store.${info.methodName}
         `;
-      case 4:
-        const storeNames = info.storeNames;
-        const argStr = storeNames.map((name) => {
-          return `use${_.upperFirst(name)}Store`;
-        }).join(",");
-        return `mapStores(${argStr})`;
+    case 4:
+      const storeNames = info.storeNames;
+      const argStr = storeNames.map((name) => {
+        return `use${_.upperFirst(name)}Store`;
+      }).join(",");
+
+      return `mapStores(${argStr})`;
     }
   }
+
   handleBindingHelper(path) {
     const node = path.node;
+
     if (!/mapState|mapGetters/.test(node.callee.name)) {
-      return false
+      return false;
     }
     if (/^use/.test(node.arguments[0].name)) { // 防止pinia的mapState也被处理了
       return false;
     }
     const types = this.types;
     const template = this.template;
-
 
     const firstArgPath = path.get("arguments.0"); // 帮助方法的的第一个参数的path
     const firstArgPathNode = firstArgPath.node;
@@ -163,7 +172,7 @@ module.exports = class Handler {
         const templateStr = this.useTemplate(templateType, {
           key: computedItemName,
           storeName: storeNameInfo.name,
-          methodSource: methodPath.getSource().replaceAll(`${rootVariable}.${storeNameInfo.dotName}`, rootVariable).replaceAll(rootVariable, "store")
+          methodSource: methodPath.getSource().replaceAll(`${rootVariable}.${storeNameInfo.dotName}`, rootVariable).replaceAll(rootVariable, "store"),
         });
         const ast = template.expression.ast(templateStr);
         const mapStateItemNode = types.spreadElement(ast);
@@ -173,13 +182,12 @@ module.exports = class Handler {
         this.addImportStore(storeNameInfo.name, storeNameInfo.path);
       });
 
-
       if (types.isSpreadElement(path.parent)) {
         this.addDeleteNodePath(path.parentPath);
       }
-
     } else if (types.isArrayExpression(firstArgPathNode)) { // 是数组
       const node = path.node;
+
       node.callee.name = "mapStores";
 
       const elements = node.arguments[0].elements;
@@ -191,17 +199,18 @@ module.exports = class Handler {
       if (types.isSpreadElement(path.parent)) {
         this.addDeleteNodePath(path.parentPath);
       }
-
     } else if (types.isStringLiteral(firstArgPathNode)) { // 是字符串
       const secondArgPath = path.get("arguments.1");
       const secondArgNode = secondArgPath.node;
+
       if (types.isObjectExpression(secondArgNode) || types.isArrayExpression(secondArgNode)) {
         let secondArgObj = eval(`(${secondArgPath.getSource()})`);
+
         if (Array.isArray(secondArgObj)) {
           secondArgObj = secondArgObj.reduce((obj, current) => {
             obj[current] = current;
             return obj;
-          }, {})
+          }, {});
         }
         Object.keys(secondArgObj).forEach((key) => {
           const property = secondArgObj[key];
@@ -210,9 +219,9 @@ module.exports = class Handler {
           const storeNameInfo = this.getStoreInfoByVariables(variables);
 
           const templateStr = this.useTemplate(2, {
-            key: key,
+            key,
             storeName: storeNameInfo.name,
-            property: dotName.replace(storeNameInfo.dotName, "")
+            property: dotName.replace(storeNameInfo.dotName, ""),
           });
 
           const ast = template.expression.ast(templateStr);
@@ -232,6 +241,7 @@ module.exports = class Handler {
 
   handleStoreCall(path) {
     const node = path.node;
+
     ;
     if (!/dispatch|commit/.test(_.get(node, "callee.property.name"))) {
       return false;
@@ -245,8 +255,9 @@ module.exports = class Handler {
 
     const firstArgNode = node.arguments[0] || "";
     const execResult = /^(.+)\/(.+?)$/.exec(firstArgNode.value);
+
     if (!execResult) {
-      console.warn(`${this.filePath}\n 注意这个$store的调用处理不了 ${firstArgNode.value}`)
+      console.warn(`${this.filePath}\n 注意这个$store的调用处理不了 ${firstArgNode.value}`);
       return;
     }
     const storePath = execResult[1];
@@ -274,14 +285,15 @@ module.exports = class Handler {
         const options = this.options;
         const importStoreMap = this.importStoreMap;
         const storeNames = Object.keys(importStoreMap);
+
         if (storeNames.length > 0 && !options.autoImport) {
           storeNames.forEach((name) => {
             const ast = template.statement.ast(`import { use${_.upperFirst(name)}Store } from "~/stores/${importStoreMap[name]}"`);
+
             file.path.unshiftContainer("body", ast);
           });
           this.signModified();
         }
-
 
         const computedStoreMap = this.computedStoreMap;
         const computedStoreNames = Object.keys(computedStoreMap);
@@ -298,15 +310,16 @@ module.exports = class Handler {
           });
 
           const exportItem = programNode.body[exportItemIndex];
-          const properties = exportItem.declaration.properties
+          const properties = exportItem.declaration.properties;
           let computedIndex = properties.findIndex((property) => {
             return _.get(property, "key.name") === "computed";
           });
 
-          let declarationPath = file.path.get(`body.${exportItemIndex}.declaration`);
+          const declarationPath = file.path.get(`body.${exportItemIndex}.declaration`);
+
           if (computedIndex === -1) {
             computedIndex = properties.length;
-            const node = types.ObjectProperty(types.identifier("computed"), template.expression.ast(`{}`));
+            const node = types.ObjectProperty(types.identifier("computed"), template.expression.ast("{}"));
 
             declarationPath.pushContainer("properties", node);
             this.signModified();
@@ -316,11 +329,12 @@ module.exports = class Handler {
           /** 处理store */
           if (hasComputedStore) {
             if (!options.autoImport) {
-              file.path.unshiftContainer("body", template.statement.ast(`import { mapStores } from "pinia"`));
+              file.path.unshiftContainer("body", template.statement.ast("import { mapStores } from \"pinia\""));
             }
             const templateStr = this.useTemplate(4, { storeNames: computedStoreNames });
             const ast2 = template.expression.ast(templateStr);
             const spreadNode = types.spreadElement(ast2);
+
             computedValuePath.unshiftContainer("properties", spreadNode);
             this.signModified();
           }
@@ -328,7 +342,7 @@ module.exports = class Handler {
           /** 处理state */
           if (hasComputedState) {
             if (!options.autoImport) {
-              file.path.unshiftContainer("body", template.statement.ast(`import { mapState } from "pinia"`));
+              file.path.unshiftContainer("body", template.statement.ast("import { mapState } from \"pinia\""));
             }
 
             this.computedStateNodes.forEach((node, index) => {
@@ -336,7 +350,6 @@ module.exports = class Handler {
             });
             this.signModified();
           }
-
         }
 
         if (this.deleteNodePaths.length > 0) {
@@ -349,7 +362,6 @@ module.exports = class Handler {
           });
           this.signModified();
         }
-
       },
       visitor: {
         /**
@@ -357,7 +369,8 @@ module.exports = class Handler {
          */
         ImportDeclaration: (path) => {
           const node = path.node;
-          if (node.source.value == "vuex") {
+
+          if (node.source.value === "vuex") {
             this.addDeleteNodePath(path);
           }
         },
@@ -368,6 +381,7 @@ module.exports = class Handler {
         },
         MemberExpression: (path) => {
           const node = path.node;
+
           if (node.property.name !== "$store" || _.get(path, "parent.property.name") !== "state") {
             return;
           }
@@ -378,9 +392,11 @@ module.exports = class Handler {
           const variables = [];
 
           let currentPath = path.parentPath; // 对应是state的
+
           while (types.isMemberExpression(currentPath.parent)) {
             currentPath = currentPath.parentPath;
             const name = currentPath.node.property.name;
+
             if (name) {
               variables.push(name);
             }
@@ -388,18 +404,19 @@ module.exports = class Handler {
 
           const isCallee = (currentPath.node === currentPath.parent.callee);
           const destPath = isCallee ? currentPath.get("object") : currentPath;
+
           isCallee && variables.pop();
 
           const storeNameInfo = this.getStoreInfoByVariables(variables);
-          const templateStr = `this.$pinia.state.value.${storeNameInfo.dotNameFull}`
+          const templateStr = `this.$pinia.state.value.${storeNameInfo.dotNameFull}`;
 
           destPath.replaceWithSourceString(templateStr);
           this.signModified();
 
           this.addImportStore(storeNameInfo.name, storeNameInfo.path);
           this.addComputedStore(storeNameInfo.name);
-        }
-      }
-    }
+        },
+      },
+    };
   }
-}
+};

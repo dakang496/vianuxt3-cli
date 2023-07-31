@@ -6,7 +6,7 @@ module.exports = class Handler {
     this.options = options || {};
     this.storeId = this.options.storeId || "";
 
-    this.actionNodes = []
+    this.actionNodes = [];
     this.getterNodes = [];
     this.stateNode = null;
   }
@@ -19,7 +19,6 @@ module.exports = class Handler {
     this.stateNode = types.ObjectProperty(types.identifier("state"), template.expression.ast(stateSource));
     declarationPath.remove();
   }
-
 
   handleMutations(path, declarationPath) {
     const properties = path.get("init").node.properties;
@@ -46,19 +45,20 @@ module.exports = class Handler {
     const properties = path.get("init").node.properties;
     const nodes = properties.map((property, index) => {
       const propertyPath = path.get(`init.properties.${index}`);
+
       property.params = property.params.slice(1);
 
       propertyPath.traverse({
         ThisExpression: (path) => {
           path.replaceWith(this.createNuxtAppNode());
-        }
-      })
+        },
+      });
 
       propertyPath.scope.rename("commit", "this.commit");
 
-
       return property;
     });
+
     this.actionNodes = this.actionNodes.concat(nodes);
 
     declarationPath.remove();
@@ -75,6 +75,7 @@ module.exports = class Handler {
 
       return property;
     });
+
     this.getterNodes = this.getterNodes.concat(nodes);
 
     declarationPath.remove();
@@ -87,7 +88,7 @@ module.exports = class Handler {
         const template = this.template;
         const path = file.path;
 
-        file.path.pushContainer("body", this.template.ast(`export const useActivityAirdropStore = defineStore("${this.storeId}",{})`))
+        file.path.pushContainer("body", this.template.ast(`export const useActivityAirdropStore = defineStore("${this.storeId}",{})`));
 
         const length = path.node.body.length;
         const objectPath = file.path.get(`body.${length - 1}.declaration.declarations.0.init.arguments.1`);
@@ -97,8 +98,10 @@ module.exports = class Handler {
 
         /** 添加getter */
         const hasGetter = this.getterNodes.length > 0;
+
         if (hasGetter) {
-          const gettersNode = types.ObjectProperty(types.identifier("getters"), template.expression.ast(`{}`));
+          const gettersNode = types.ObjectProperty(types.identifier("getters"), template.expression.ast("{}"));
+
           objectPath.pushContainer("properties", gettersNode);
 
           const index = objectPath.node.properties.length - 1;
@@ -110,12 +113,14 @@ module.exports = class Handler {
 
         /** 添加action */
         const hasAction = this.actionNodes.length > 0;
+
         if (hasAction) {
           const actionsNode = types.ObjectProperty(types.identifier("actions"), template.expression.ast(`{
             commit(method,...args){
               this[method].apply(this,args);
             }
           }`));
+
           objectPath.pushContainer("properties", actionsNode);
 
           const index = objectPath.node.properties.length - 1;
@@ -124,7 +129,6 @@ module.exports = class Handler {
             objectPath.get(`properties.${index}.value`).pushContainer("properties", node);
           });
         }
-
       },
       visitor: {
         ExportNamedDeclaration: (path) => {
@@ -132,23 +136,22 @@ module.exports = class Handler {
           const variableName = variableDeclaratorPath.node.id.name;
 
           switch (variableName) {
-            case "state":
-              this.handleState(variableDeclaratorPath, path);
-              break;
-            case "mutations":
-              this.handleMutations(variableDeclaratorPath, path);
-              break;
-            case "actions":
-              this.handleActions(variableDeclaratorPath, path);
-              break;
-            case "getters":
-              this.handleGetters(variableDeclaratorPath, path);
-              break;
+          case "state":
+            this.handleState(variableDeclaratorPath, path);
+            break;
+          case "mutations":
+            this.handleMutations(variableDeclaratorPath, path);
+            break;
+          case "actions":
+            this.handleActions(variableDeclaratorPath, path);
+            break;
+          case "getters":
+            this.handleGetters(variableDeclaratorPath, path);
+            break;
           }
-        }
-      }
+        },
+      },
 
-    }
-
+    };
   }
-}
+};
