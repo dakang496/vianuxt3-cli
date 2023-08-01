@@ -52,7 +52,7 @@ module.exports = async function(options) {
       }
 
       const finalScript = await helper.formatCode(result.code, {}, filePath);
-      const newContent = content.replace(script, (isVue ? "\n" : "") + finalScript + "\n");
+      const newContent = content.replace(script, (isVue ? "\n" : "") + finalScript);
 
       return newContent;
     } catch (error) {

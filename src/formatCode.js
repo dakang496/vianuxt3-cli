@@ -1,5 +1,6 @@
 const { ESLint } = require("eslint");
 const _ = require("lodash");
+const path = require("path");
 
 const defaultConfig = {
   env: {
@@ -72,6 +73,8 @@ module.exports = async function(code, overrideConfig, filePath) {
   const eslint = new ESLint({
     fix: true,
     overrideConfig: config,
+    overrideConfigFile: null,
+    cwd: path.resolve(__dirname, "../"),
   });
   const results = await eslint.lintText(code);
 

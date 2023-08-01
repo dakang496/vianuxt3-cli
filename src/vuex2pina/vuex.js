@@ -37,7 +37,7 @@ module.exports = async function(options) {
 
       const finalScript = await helper.formatCode(result.code, {}, filePath);
 
-      const newContent = content.replace(content, finalScript + "\n");
+      const newContent = content.replace(content, finalScript);
 
       return newContent;
     } catch (error) {

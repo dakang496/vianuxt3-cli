@@ -1,3 +1,5 @@
+const _ = require("lodash");
+
 module.exports = class Handler {
   constructor({ types, template }, options) {
     this.types = types;
@@ -88,7 +90,7 @@ module.exports = class Handler {
         const template = this.template;
         const path = file.path;
 
-        file.path.pushContainer("body", this.template.ast(`export const useActivityAirdropStore = defineStore("${this.storeId}",{})`));
+        file.path.pushContainer("body", this.template.ast(`export const use${_.upperFirst(_.camelCase(this.storeId))}Store = defineStore("${this.storeId}",{})`));
 
         const length = path.node.body.length;
         const objectPath = file.path.get(`body.${length - 1}.declaration.declarations.0.init.arguments.1`);
